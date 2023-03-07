@@ -10,10 +10,8 @@ import net.minecraft.item.Item;
 import net.minecraft.util.DamageSource;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.event.entity.EntityEvent;
-import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
-import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
@@ -32,7 +30,7 @@ public class CoolAttributes {
 
     public static final String MOD_ID = "cool-attributes";
     public static final String MOD_NAME = "Cool Attributes";
-    public static final String VERSION = "1.0-SNAPSHOT";
+    public static final String VERSION = "1.0.1-SNAPSHOT";
     static Logger logger = LogManager.getLogger(MOD_ID);
 
     public static final IAttribute lifeStealPercentage = new RangedAttribute(null, MOD_ID + ".lifeStealPercentage", 0.0D, 0.0D, 1.0D);
@@ -132,10 +130,10 @@ public class CoolAttributes {
         public static void entityDamaged(LivingDamageEvent event) {
             float damage = event.getAmount();
             Entity src = event.getSource().getImmediateSource();
-            logger.debug(damage + " " + event.getSource().getDamageType());
+            //logger.debug(damage + " " + event.getSource().getDamageType() + " post armor");
             if (src instanceof EntityPlayer) {
                 EntityPlayer player = (EntityPlayer) src;
-                logger.debug(src.getName() + " dealt " + damage);
+                //logger.debug(src.getName() + " dealt " + damage);
                 float healPercent = (float) player.getAttributeMap().getAttributeInstance(lifeStealPercentage).getAttributeValue();
                 player.heal(damage * healPercent);
             }
@@ -143,17 +141,23 @@ public class CoolAttributes {
         }
 
         @SubscribeEvent
-        public static void entityAttacked(LivingAttackEvent event) {
+        public static void entityAttacked(LivingHurtEvent event) {
             float damage = event.getAmount();
             Entity entity = event.getEntity();
             Entity src = event.getSource().getImmediateSource();
+
             if (!(entity instanceof EntityLivingBase)) return;
             EntityLivingBase mob = (EntityLivingBase) entity;
+
+            //logger.debug(damage + " " + event.getSource().getDamageType() + " pre armor");
             if (src instanceof EntityPlayer) {
                 EntityPlayer player = (EntityPlayer) src;
                 float damagePercent = (float) player.getAttributeMap().getAttributeInstance(outOfWorldPercentage).getAttributeValue();
-                logger.debug(damage + ", " + damagePercent + ", " + damage * damagePercent);
-                mob.attackEntityFrom(DamageSource.OUT_OF_WORLD, damage * damagePercent);
+                if (damagePercent > 0.0F){
+                    entity.hurtResistantTime = 0;
+                    //logger.debug(damage + ", " + damagePercent + ", " + damage * damagePercent);
+                    mob.attackEntityFrom(DamageSource.OUT_OF_WORLD, damage * damagePercent);
+                }
             }
         }
     }

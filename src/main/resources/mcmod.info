@@ -2,9 +2,7 @@
   {
     "modid": "cool-attributes",
     "name": "Cool Attributes",
-    "description": "Adds some cool attributes: LifeSteal and "
-    TrueDamage
-    "",
+    "description": "Adds some cool attributes: LifeSteal and TrueDamage",
     "version": "${version}",
     "mcversion": "${mcversion}",
     "url": "",

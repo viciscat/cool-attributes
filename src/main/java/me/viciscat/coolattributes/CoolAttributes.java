@@ -8,6 +8,7 @@ import net.minecraft.entity.ai.attributes.RangedAttribute;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.util.DamageSource;
+import net.minecraft.util.text.TextComponentString;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.event.entity.EntityEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
@@ -15,9 +16,12 @@ import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.common.registry.GameRegistry;
+import net.minecraftforge.fml.relauncher.Side;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -30,11 +34,14 @@ public class CoolAttributes {
 
     public static final String MOD_ID = "cool-attributes";
     public static final String MOD_NAME = "Cool Attributes";
-    public static final String VERSION = "1.0.1-SNAPSHOT";
+    public static final String VERSION = "1.1.0";
     static Logger logger = LogManager.getLogger(MOD_ID);
 
-    public static final IAttribute lifeStealPercentage = new RangedAttribute(null, MOD_ID + ".lifeStealPercentage", 0.0D, 0.0D, 1.0D);
-    public static final IAttribute outOfWorldPercentage = new RangedAttribute(null, MOD_ID + ".outOfWorldPercentage", 0.0D, 0.0D, 1.0D);
+    public static final IAttribute lifeStealPercentage = new RangedAttribute(null, MOD_ID + ".lifeStealPercentage", 0.0D, 0.0D, 10.0D);
+    public static final IAttribute outOfWorldPercentage = new RangedAttribute(null, MOD_ID + ".outOfWorldPercentage", 0.0D, 0.0D, 10.0D);
+    public static final IAttribute directDamagePercentage = new RangedAttribute(null, MOD_ID + ".directDamagePercentage", 0.0D, 0.0D, 10.0D);
+    public static final IAttribute healAmountPerTick = new RangedAttribute(null, MOD_ID + ".healPerTick", 0.0D, 0.0D, 1024.0D);
+    public static final IAttribute healPercentMaxHealthPerTick = new RangedAttribute(null, MOD_ID + ".healPercentMaxHealthPerTick", 0.0D, 0.0D, 1.0D);
 
     /**
      * This is the instance of your mod as created by Forge. It will never be null.
@@ -122,7 +129,9 @@ public class CoolAttributes {
             if (entity instanceof EntityPlayer) {
                 ((EntityPlayer) entity).getAttributeMap().registerAttribute(lifeStealPercentage);
                 ((EntityPlayer) entity).getAttributeMap().registerAttribute(outOfWorldPercentage);
-                logger.warn("hi");
+                ((EntityPlayer) entity).getAttributeMap().registerAttribute(healAmountPerTick);
+                ((EntityPlayer) entity).getAttributeMap().registerAttribute(healPercentMaxHealthPerTick);
+                ((EntityPlayer) entity).getAttributeMap().registerAttribute(directDamagePercentage);
             }
         }
 
@@ -140,7 +149,7 @@ public class CoolAttributes {
 
         }
 
-        @SubscribeEvent
+        @SubscribeEvent(priority = EventPriority.HIGHEST)
         public static void entityAttacked(LivingHurtEvent event) {
             float damage = event.getAmount();
             Entity entity = event.getEntity();
@@ -152,13 +161,30 @@ public class CoolAttributes {
             //logger.debug(damage + " " + event.getSource().getDamageType() + " pre armor");
             if (src instanceof EntityPlayer) {
                 EntityPlayer player = (EntityPlayer) src;
-                float damagePercent = (float) player.getAttributeMap().getAttributeInstance(outOfWorldPercentage).getAttributeValue();
-                if (damagePercent > 0.0F){
+                float damagePercentOOF = (float) player.getAttributeMap().getAttributeInstance(outOfWorldPercentage).getAttributeValue();
+                float damagePercentDirect = (float) player.getAttributeMap().getAttributeInstance(directDamagePercentage).getAttributeValue();
+                if (damagePercentOOF > 0.0F){
                     entity.hurtResistantTime = 0;
                     //logger.debug(damage + ", " + damagePercent + ", " + damage * damagePercent);
-                    mob.attackEntityFrom(DamageSource.OUT_OF_WORLD, damage * damagePercent);
+                    mob.attackEntityFrom(DamageSource.OUT_OF_WORLD, damage * damagePercentOOF);
+                }
+                if (damagePercentDirect > 0.0F){
+                    entity.hurtResistantTime = 0;
+                    //logger.debug(damage + ", " + damagePercent + ", " + damage * damagePercent);
+                    mob.setLastAttackedEntity(null);
+                    mob.attackEntityFrom(DamageSource.OUT_OF_WORLD, damage * damagePercentDirect);
                 }
             }
+        }
+
+        @SubscribeEvent
+        public static void playerTick(TickEvent.PlayerTickEvent event) {
+            if (!(event.phase.equals(TickEvent.Phase.START) && event.side.equals(Side.SERVER))) return;
+            if (event.player.getHealth() == event.player.getMaxHealth()) return;
+            float flatHealAmount = (float) event.player.getAttributeMap().getAttributeInstance(healAmountPerTick).getAttributeValue();
+            float percentHealAmount = (float) event.player.getAttributeMap().getAttributeInstance(healPercentMaxHealthPerTick).getAttributeValue();
+
+            event.player.heal(flatHealAmount + percentHealAmount * event.player.getMaxHealth());
         }
     }
     /* EXAMPLE ITEM AND BLOCK - you probably want these in separate files

@@ -1,0 +1,5 @@
+attribute.name.cool-attributes.healPerTick=Health per Tick
+attribute.name.cool-attributes.lifeStealPercentage=Life steal (%)
+attribute.name.cool-attributes.outOfWorldPercentage=Extra OutOfWorld Damage (%)
+attribute.name.cool-attributes.healPercentMaxHealthPerTick=Of Max Health per Tick (%)
+attribute.name.cool-attributes.directDamagePercentage=Extra Direct Damage (%)

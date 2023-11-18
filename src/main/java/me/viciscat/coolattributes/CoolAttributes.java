@@ -179,13 +179,12 @@ public class CoolAttributes {
         }
 
         @SubscribeEvent(priority = EventPriority.HIGHEST)
-        public static void entityAttackedExplosion(LivingHurtEvent event) { // Bit too lazy to merge with existing method so good enough
+        public static void entityAttackedExplosion(LivingHurtEvent event) { // A bit too lazy to merge with existing method so good enough
             float damage = event.getAmount();
             Entity entity = event.getEntity();
-            Entity src = event.getSource().getImmediateSource();
+            Entity src = event.getSource().getTrueSource();
 
             if (!(entity instanceof EntityLivingBase)) return;
-            EntityLivingBase mob = (EntityLivingBase) entity;
 
             if (src instanceof EntityPlayer) {
                 EntityPlayer player = (EntityPlayer) src;
@@ -194,7 +193,6 @@ public class CoolAttributes {
                 if (damagePercentExplosion > 0.0F && event.getSource().isExplosion()) {
                     // Apply custom effect for explosion damage
                     float modifiedDamage = damage * (1.0F + damagePercentExplosion);
-                    mob.attackEntityFrom(event.getSource(), modifiedDamage);
                     event.setAmount(modifiedDamage);
                 }
             }

@@ -42,6 +42,7 @@ public class CoolAttributes {
     public static final IAttribute directDamagePercentage = new RangedAttribute(null, MOD_ID + ".directDamagePercentage", 0.0D, 0.0D, 10.0D);
     public static final IAttribute healAmountPerTick = new RangedAttribute(null, MOD_ID + ".healPerTick", 0.0D, 0.0D, 1024.0D);
     public static final IAttribute healPercentMaxHealthPerTick = new RangedAttribute(null, MOD_ID + ".healPercentMaxHealthPerTick", 0.0D, 0.0D, 1.0D);
+    public static final IAttribute customAttribute = new RangedAttribute(null, MOD_ID + ".explosionDamage", 0.0D, 0.0D, 10.0D);
 
     /**
      * This is the instance of your mod as created by Forge. It will never be null.
@@ -132,6 +133,7 @@ public class CoolAttributes {
                 ((EntityPlayer) entity).getAttributeMap().registerAttribute(healAmountPerTick);
                 ((EntityPlayer) entity).getAttributeMap().registerAttribute(healPercentMaxHealthPerTick);
                 ((EntityPlayer) entity).getAttributeMap().registerAttribute(directDamagePercentage);
+                ((EntityPlayer) entity).getAttributeMap().registerAttribute(explosionDamage);
             }
         }
 
@@ -176,6 +178,27 @@ public class CoolAttributes {
                 }
             }
         }
+            @SubscribeEvent(priority = EventPriority.HIGHEST)
+public static void entityAttacked(LivingHurtEvent event) {
+    float damage = event.getAmount();
+    Entity entity = event.getEntity();
+    Entity src = event.getSource().getImmediateSource();
+
+    if (!(entity instanceof EntityLivingBase)) return;
+    EntityLivingBase mob = (EntityLivingBase) entity;
+
+    if (src instanceof EntityPlayer) {
+        EntityPlayer player = (EntityPlayer) src;
+        float damagePercentExplosion = (float) player.getAttributeMap().getAttributeInstance(explosionDamage).getAttributeValue();
+
+        if (damagePercentExplosion > 0.0F && event.getSource().isExplosion()) {
+            // Apply custom effect for explosion damage
+            float modifiedDamage = damage * (1.0F + damagePercentExplosion);
+            mob.attackEntityFrom(event.getSource(), modifiedDamage);
+            event.setAmount(modifiedDamage);
+        }
+    }
+}
 
         @SubscribeEvent
         public static void playerTick(TickEvent.PlayerTickEvent event) {

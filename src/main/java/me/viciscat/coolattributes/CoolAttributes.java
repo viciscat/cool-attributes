@@ -8,7 +8,6 @@ import net.minecraft.entity.ai.attributes.RangedAttribute;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.util.DamageSource;
-import net.minecraft.util.text.TextComponentString;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.event.entity.EntityEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
@@ -42,6 +41,7 @@ public class CoolAttributes {
     public static final IAttribute directDamagePercentage = new RangedAttribute(null, MOD_ID + ".directDamagePercentage", 0.0D, 0.0D, 10.0D);
     public static final IAttribute healAmountPerTick = new RangedAttribute(null, MOD_ID + ".healPerTick", 0.0D, 0.0D, 1024.0D);
     public static final IAttribute healPercentMaxHealthPerTick = new RangedAttribute(null, MOD_ID + ".healPercentMaxHealthPerTick", 0.0D, 0.0D, 1.0D);
+    public static final IAttribute explosionDamage = new RangedAttribute(null, MOD_ID + ".explosionDamage", 0.0D, 0.0D, 10.0D);
 
     /**
      * This is the instance of your mod as created by Forge. It will never be null.
@@ -124,7 +124,7 @@ public class CoolAttributes {
         }
 
         @SubscribeEvent
-        public static void entityConstructing(EntityEvent.EntityConstructing event){
+        public static void entityConstructing(EntityEvent.EntityConstructing event) {
             Entity entity = event.getEntity();
             if (entity instanceof EntityPlayer) {
                 ((EntityPlayer) entity).getAttributeMap().registerAttribute(lifeStealPercentage);
@@ -132,6 +132,7 @@ public class CoolAttributes {
                 ((EntityPlayer) entity).getAttributeMap().registerAttribute(healAmountPerTick);
                 ((EntityPlayer) entity).getAttributeMap().registerAttribute(healPercentMaxHealthPerTick);
                 ((EntityPlayer) entity).getAttributeMap().registerAttribute(directDamagePercentage);
+                ((EntityPlayer) entity).getAttributeMap().registerAttribute(explosionDamage);
             }
         }
 
@@ -163,16 +164,36 @@ public class CoolAttributes {
                 EntityPlayer player = (EntityPlayer) src;
                 float damagePercentOOF = (float) player.getAttributeMap().getAttributeInstance(outOfWorldPercentage).getAttributeValue();
                 float damagePercentDirect = (float) player.getAttributeMap().getAttributeInstance(directDamagePercentage).getAttributeValue();
-                if (damagePercentOOF > 0.0F){
+                if (damagePercentOOF > 0.0F) {
                     entity.hurtResistantTime = 0;
                     //logger.debug(damage + ", " + damagePercent + ", " + damage * damagePercent);
                     mob.attackEntityFrom(DamageSource.OUT_OF_WORLD, damage * damagePercentOOF);
                 }
-                if (damagePercentDirect > 0.0F){
+                if (damagePercentDirect > 0.0F) {
                     entity.hurtResistantTime = 0;
                     //logger.debug(damage + ", " + damagePercent + ", " + damage * damagePercent);
                     mob.setLastAttackedEntity(null);
                     mob.attackEntityFrom(DamageSource.OUT_OF_WORLD, damage * damagePercentDirect);
+                }
+            }
+        }
+
+        @SubscribeEvent(priority = EventPriority.HIGHEST)
+        public static void entityAttackedExplosion(LivingHurtEvent event) { // A bit too lazy to merge with existing method so good enough
+            float damage = event.getAmount();
+            Entity entity = event.getEntity();
+            Entity src = event.getSource().getTrueSource();
+
+            if (!(entity instanceof EntityLivingBase)) return;
+
+            if (src instanceof EntityPlayer) {
+                EntityPlayer player = (EntityPlayer) src;
+                float damagePercentExplosion = (float) player.getAttributeMap().getAttributeInstance(explosionDamage).getAttributeValue();
+
+                if (damagePercentExplosion > 0.0F && event.getSource().isExplosion()) {
+                    // Apply custom effect for explosion damage
+                    float modifiedDamage = damage * (1.0F + damagePercentExplosion);
+                    event.setAmount(modifiedDamage);
                 }
             }
         }

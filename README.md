@@ -1,3 +1,7 @@
+
+> [!CAUTION]
+> # This mod has been merged into [KusTweaks](https://github.com/viciscat/KusTweaks) as this was made for that modpack anyways.
+
 # Cool attributes !
 
 A very basic mod for Minecraft 1.12.2 that adds 2 custom attributes:
